@@ -231,7 +231,11 @@ function Alarm({ bot, a }) {
       jsx('span', { style: { fontFamily: MONO, fontWeight: 700, color: red ? C.red : C.yellow }, children: bot.name.toUpperCase() }),
       jsxs('span', { children: [jsx('div', { style: { color: C.t1, fontWeight: 600 }, children: a.finding }), jsx('div', { style: { color: C.t3, fontSize: 11.5 }, children: `${a.reading} · normal ${a.normal}` })] }),
       jsx('span', { style: { fontFamily: MONO, fontSize: 10.5, color: C.t4 }, children: evText }),
-      jsx('span', { style: { color: C.t2, fontSize: 11.5 }, children: a.treatment }),
+      jsxs('span', { style: { color: C.t2, fontSize: 11.5 }, children: [a.treatment,
+        // The symptom is here; the cause (which login, benched until when, the fix) is in Key Doctor.
+        a.rule === 'provider_auth' ? jsx('button', { type: 'button', onClick: () => host.navigate('/keys'),
+          style: { display: 'block', marginTop: 6, fontSize: 11, padding: '3px 9px', borderRadius: 6, border: `1px solid ${C.stroke}`, background: 'transparent', color: C.accent, cursor: 'pointer' },
+          children: 'Open Key Doctor →' }) : null] }),
     ],
   })
 }

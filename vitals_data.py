@@ -46,7 +46,7 @@ LOG_RULES = [
     ("plugin_load", re.compile(r"Failed to load plugin"), "A plugin fails to load on every start",
      "Repair or remove the broken plugin folder"),
     ("provider_auth", re.compile(r"\b(401|403)\b.*(auth|key|token)|invalid api key", re.I), "Provider rejects the key",
-     "Re-check that provider's credentials in Settings"),
+     "Open Key Doctor (/keys): it names the benched or blocked login and the fix"),
 ]
 # Only error-level signatures can raise a red ALERT (rule -> minimum lines); startup warnings stay WATCH.
 ALERT_RULES = {"vision": 20, "provider_auth": 5}
@@ -203,14 +203,18 @@ def assess(s: dict, mem: dict, log: dict, now: float, th: dict = THRESHOLDS) -> 
     stuck_pct = _pct(s["stuck"], s["sessions"])
     alarms = []
 
-    def alarm(level, finding, reading, normal, evidence, treatment):
+    def alarm(level, finding, reading, normal, evidence, treatment, rule=None):
         alarms.append({"level": level, "finding": finding, "reading": reading, "normal": normal,
-                       "evidence": evidence, "treatment": treatment})
+                       "evidence": evidence, "treatment": treatment, "rule": rule})
 
     for hit in log["rules"]:
         level = "alert" if hit["rule"] in ALERT_RULES and hit["count"] >= ALERT_RULES[hit["rule"]] else "watch"
-        alarm(level, hit["title"], f"{hit['count']} log lines this window", "0",
-              {"file": "errors.log", "source": hit["source"], "count": hit["count"], "last": hit["last"]}, hit["treatment"])
+        title, treatment, rule = hit["title"], hit["treatment"], hit["rule"]
+        # An MCP server's own sign-in, not a model key: Key Doctor would rightly show nothing for it.
+        if rule == "provider_auth" and "mcp" in str(hit["source"]).lower():
+            title, treatment, rule = "An MCP server needs signing in again", "Run `hermes mcp login <server>` (or reauth) for the MCP server that lost its sign-in", "mcp_auth"
+        alarm(level, title, f"{hit['count']} log lines this window", "0",
+              {"file": "errors.log", "source": hit["source"], "count": hit["count"], "last": hit["last"]}, treatment, rule)
     if "temp" in bad and not log["rules"]:
         top = log["top_sources"][0] if log["top_sources"] else {"source": "?", "count": 0}
         alarm("watch", "Errors in the log", f"{log['errors']} errors", f"0–{th['errors']}",
