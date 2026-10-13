@@ -150,8 +150,8 @@ function Trace({ hourly, alert }) {
   return jsx('canvas', {
     ref,
     style: {
-      display: 'block', width: '100%', height: 132, borderRadius: 6,
-      background: `linear-gradient(color-mix(in srgb, var(--ui-accent, #4a84fe) 7%, transparent) 1px, transparent 1px) 0 0/100% 22px, linear-gradient(90deg, color-mix(in srgb, var(--ui-accent, #4a84fe) 7%, transparent) 1px, transparent 1px) 0 0/22px 100%`,
+      display: 'block', width: '100%', height: 38, borderRadius: 6,
+      background: `linear-gradient(color-mix(in srgb, var(--ui-accent, #4a84fe) 7%, transparent) 1px, transparent 1px) 0 0/100% 11px, linear-gradient(90deg, color-mix(in srgb, var(--ui-accent, #4a84fe) 7%, transparent) 1px, transparent 1px) 0 0/11px 100%`,
     },
   })
 }
@@ -167,12 +167,12 @@ const fmtTime = (ts) => (ts ? new Date(ts * 1000).toLocaleString([], { month: 's
 function Vital({ k, value, unit, note, color, bad }) {
   return jsxs('div', {
     children: [
-      jsx('div', { style: { fontSize: 10, letterSpacing: '.08em', color, opacity: 0.9 }, children: k }),
+      jsx('div', { style: { fontSize: 9, letterSpacing: '.08em', color, opacity: 0.9 }, children: k }),
       jsxs('div', {
-        style: { fontSize: 30, fontWeight: 700, lineHeight: 1, color: bad ? C.red : color, fontVariantNumeric: 'tabular-nums' },
+        style: { fontSize: 17, fontWeight: 700, lineHeight: 1.05, color: bad ? C.red : color, fontVariantNumeric: 'tabular-nums' },
         children: [value, unit ? jsx('span', { style: { fontSize: 11, fontWeight: 500, marginLeft: 3, opacity: 0.8 }, children: unit }) : null],
       }),
-      jsx('div', { style: { fontSize: 9.5, color: C.t4, marginTop: 2 }, children: note }),
+      jsx('div', { style: { fontSize: 8.5, color: C.t4, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, children: note }),
     ],
   })
 }
@@ -181,30 +181,30 @@ function Monitor({ bot, th }) {
   const st = STATUS[bot.status] || STATUS.idle
   const v = bot.vitals, bad = (k) => bot.bad.includes(k)
   return jsxs('div', {
-    style: { background: C.panel, border: `1px solid ${st.edge}`, borderRadius: 10, padding: '10px 12px', fontFamily: MONO,
+    style: { background: C.panel, border: `1px solid ${st.edge}`, borderRadius: 8, padding: '7px 10px', fontFamily: MONO,
       boxShadow: bot.status === 'alert' ? '0 0 0 1px color-mix(in srgb, var(--ui-red, #ff7b72) 25%, transparent)' : 'none' },
     children: [
       jsxs('div', {
         style: { display: 'flex', alignItems: 'center', gap: 10 },
         children: [
-          jsx('span', { style: { fontSize: 15, fontWeight: 700, color: C.t1, letterSpacing: '.03em' }, children: bot.name.toUpperCase() }),
+          jsx('span', { style: { fontSize: 12.5, fontWeight: 700, color: C.t1, letterSpacing: '.03em' }, children: bot.name.toUpperCase() }),
           jsx('span', { style: { fontSize: 10.5, color: C.t4 }, children: bot.profile }),
           jsx('span', { style: { marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', padding: '2px 8px', borderRadius: 4, color: st.fg, background: st.bg }, children: st.label }),
         ],
       }),
       jsxs('div', {
-        style: { display: 'flex', gap: 12, marginTop: 8 },
+        style: { display: 'flex', flexDirection: 'column', gap: 5, marginTop: 5 },
         children: [
           jsxs('div', {
             style: { flex: 1, minWidth: 0 },
             children: [
               jsx(Trace, { hourly: bot.hourly, alert: bot.status === 'alert' }),
-              jsxs('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.t4, marginTop: 3 },
+              jsxs('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t4, marginTop: 2 },
                 children: [jsx('span', { children: `${bot.hourly.length / 24}d ago` }), jsx('span', { children: bot.no_pulse ? `no pulse · last ${fmtAgo(bot.last_activity)}` : `last activity ${fmtAgo(bot.last_activity)}` })] }),
             ],
           }),
           jsxs('div', {
-            style: { width: 220, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' },
+            style: { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 6 },
             children: [
               jsx(Vital, { k: 'HR', value: v.hr, unit: '/h', note: 'calls per active hour', color: C.green }),
               jsx(Vital, { k: 'BP', value: v.bp[0], unit: `/${v.bp[1]}`, note: `fail ${v.fail_pct}% · <${th.fail_pct}%`, color: C.yellow, bad: bad('bp') }),
@@ -242,9 +242,10 @@ function Alarm({ bot, a }) {
 
 function VitalsPage() {
   const s = useVitals()
+  const [allAlarms, setAllAlarms] = useState(false)
   const d = s.data
   const head = jsxs('div', {
-    style: { display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 },
+    style: { display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 10 },
     children: [
       jsx('div', { style: { fontSize: 13, color: C.t1, fontWeight: 600 }, children: 'Vitals' }),
       jsx('div', { style: { fontSize: 11.5, color: C.t3 }, children: 'read-only · counts only · no message text' }),
@@ -261,23 +262,27 @@ function VitalsPage() {
   const alarms = d.bots.flatMap((b) => b.alarms.map((a) => ({ b, a })))
   alarms.sort((x, y) => (x.a.level === 'alert' ? 0 : 1) - (y.a.level === 'alert' ? 0 : 1))
   const th = d.thresholds
+  // Watch items fold away by default so every Bot and every red alert fit on one screen.
+  const shownAlarms = allAlarms ? alarms : alarms.filter(({ a }) => a.level === 'alert')
+  const hiddenWatch = alarms.length - alarms.filter(({ a }) => a.level === 'alert').length
   return jsxs('div', {
-    style: { padding: '20px 28px 28px', height: '100%', overflow: 'auto' },
+    style: { padding: '14px 22px 18px', height: '100%', overflow: 'auto' },
     children: [
       head,
-      jsx('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(560px, 1fr))', gap: 14 },
+      jsx('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 10 },
         children: d.bots.map((b) => jsx(Monitor, { bot: b, th }, b.profile)) }),
       jsxs('div', {
-        style: { marginTop: 14, background: C.panel, border: `1px solid ${C.stroke}`, borderRadius: 10, padding: '10px 14px' },
+        style: { marginTop: 10, background: C.panel, border: `1px solid ${C.stroke}`, borderRadius: 10, padding: '8px 14px' },
         children: [
-          jsx('div', { style: { fontSize: 10.5, letterSpacing: '.09em', color: C.t3, textTransform: 'uppercase', marginBottom: 4 }, children: `Alarms · ${alarms.length} · finding · reading vs normal · evidence · treatment` }),
-          alarms.length ? alarms.map(({ b, a }, i) => jsx(Alarm, { bot: b, a }, `${b.profile}-${i}`)) : jsx('div', { style: { color: C.green, fontSize: 12, padding: '8px 0' }, children: 'No alarms.' }),
-          jsx('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 8, fontFamily: MONO, fontSize: 10.5, color: C.t4 },
-            children: [['HR', C.green, 'tool calls per active hour'], ['BP', C.yellow, 'failed calls / stuck sessions'], ['TEMP', C.orange, 'errors in errors.log'],
-              ['SAT', C.cyan, 'memory fill vs cap'], ['RR', C.purple, 'loops (same failing step)'], ['NEXT', C.t2, 'messages to the next memory review']]
-              .map(([k, c, t]) => jsxs('span', { children: [jsx('b', { style: { color: c }, children: k }), ` ${t}`] }, k)) }),
-          jsx('div', { style: { marginTop: 8, fontSize: 11, color: C.t4 },
-            children: 'Counts only what the logs record: zero failures is not the same as "it worked". Normal ranges are Hermes Vitals thresholds, not Hermes defaults.' }),
+          jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }, children: [
+            jsx('div', { style: { fontSize: 10.5, letterSpacing: '.09em', color: C.t3, textTransform: 'uppercase' }, children: `Alarms · ${shownAlarms.length} of ${alarms.length}${allAlarms ? '' : ' · alerts only'}` }),
+            hiddenWatch ? jsx('button', { type: 'button', onClick: () => setAllAlarms((v) => !v),
+              style: { marginLeft: 'auto', fontSize: 11, padding: '2px 9px', borderRadius: 6, border: `1px solid ${C.stroke}`, background: 'transparent', color: C.t2, cursor: 'pointer' },
+              children: allAlarms ? 'Alerts only' : `Show ${hiddenWatch} watch` }) : null,
+          ] }),
+          shownAlarms.length ? shownAlarms.map(({ b, a }, i) => jsx(Alarm, { bot: b, a }, `${b.profile}-${i}`)) : jsx('div', { style: { color: alarms.length ? C.t3 : C.green, fontSize: 12, padding: '6px 0' }, children: alarms.length ? 'No red alerts. Watch items are hidden.' : 'No alarms.' }),
+          jsx('div', { style: { marginTop: 4, fontSize: 10.5, color: C.t4 },
+            children: 'Counts only what the logs record: zero failures is not "it worked". Ranges are Vitals thresholds, not Hermes defaults.' }),
         ],
       }),
     ],
