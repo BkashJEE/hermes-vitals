@@ -1,0 +1,12 @@
+name: hermes-vitals
+version: "0.1.0"
+manifest_version: 2
+api_version: 1
+description: "A bedside monitor for every Hermes Bot inside Hermes Desktop: heartbeat traces from real activity, five vital signs (HR, BP, TEMP, SAT, RR) and alarms with evidence and a fix. Read-only, counts only, no network calls."
+author: Bikash Joshi
+license: MIT
+homepage: https://github.com/BkashJEE/hermes-vitals
+tags: [desktop, health, monitoring, diagnostics, memory]
+requires_hermes: ">=0.21.5"
+provides_commands:
+  - vitals

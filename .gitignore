@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+mockup/
+harness/payload.json
+harness/payload.js
+harness/*.png
