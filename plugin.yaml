@@ -1,5 +1,5 @@
 name: hermes-vitals
-version: "0.1.0"
+version: "0.1.1"
 manifest_version: 2
 api_version: 1
 description: "A bedside monitor for every Hermes Bot inside Hermes Desktop: heartbeat traces from real activity, five vital signs (HR, BP, TEMP, SAT, RR) and alarms with evidence and a fix. Read-only, counts only, no network calls."
