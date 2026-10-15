@@ -15,14 +15,14 @@ const REFRESH_MS = 15000
 const CLI_TIMEOUT_MS = 30000
 
 // ── data ────────────────────────────────────────────────────────────────────
+// Vitals reads THIS machine's Bots, so it always talks to the local gateway — never the one
+// that owns the focused chat (a remote connection may not have this plugin installed at all, and its
+// Hermes would answer "'vitals' is not a hermes command").
 async function resolveRoute() {
-  const owner = host.state?.focusedSessionOwner?.get?.() || null
   const routes = await host.profileRoutes()
-  const exact = owner ? routes.filter((r) => r.connectionId === owner.connectionId && r.profile === owner.profile) : []
-  if (exact.length === 1) return exact[0]
-  const fallback = routes.find((r) => r.primary) || routes.find((r) => r.mode === 'local') || routes[0]
-  if (!fallback) throw new Error('No Hermes profile route available')
-  return fallback
+  const route = routes.find((r) => r.mode === 'local' && r.primary) || routes.find((r) => r.mode === 'local') || routes.find((r) => r.primary) || routes[0]
+  if (!route) throw new Error('No Hermes profile route available')
+  return route
 }
 
 function parseCliJson(output) {
@@ -34,10 +34,14 @@ function parseCliJson(output) {
   throw new Error(lines.slice(-2).join(' ') || 'empty output from hermes vitals')
 }
 
+// A call that never settles (gateway restarted mid-request) must not leave `store.inflight` set forever,
+// which would block every later refresh.
+const withDeadline = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timed out waiting for hermes vitals')), ms))])
+
 async function fetchVitals() {
   const route = await resolveRoute()
-  const res = await host.requestProfile(route, 'cli.exec',
-    { argv: ['--profile', route.targetProfile, 'vitals', '--json'], timeout: CLI_TIMEOUT_MS / 1000 }, CLI_TIMEOUT_MS + 5000)
+  const res = await withDeadline(host.requestProfile(route, 'cli.exec',
+    { argv: ['--profile', route.targetProfile, 'vitals', '--json'], timeout: CLI_TIMEOUT_MS / 1000 }, CLI_TIMEOUT_MS + 5000), CLI_TIMEOUT_MS + 10000)
   if (res && res.blocked) throw new Error(res.hint || 'cli.exec blocked')
   const payload = parseCliJson(res && res.output)
   if (payload.error) throw new Error(payload.error)
